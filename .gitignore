@@ -13,6 +13,11 @@
 # Local History for Visual Studio Code
 .history/
 
+#Debug files
+Wildberries*
+Ozon*
+
+
 # Built Visual Studio Code Extensions
 *.vsix
 

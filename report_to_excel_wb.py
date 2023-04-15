@@ -6,11 +6,13 @@ from config import Config
 import time
 import os
 import openpyxl
+from config import Config
+import json
 
 
 def load_error_codes():
     with open('data/error_codes.txt', 'r', encoding='utf-8') as f:
-        dict = { }
+        dict = {}
         contents = f.read()
         lines = contents.split('\n')
         for line in lines:
@@ -18,10 +20,12 @@ def load_error_codes():
             dict[key] = value
     return dict
 
+
 def check_articul(articul, error_codes):
     if articul in error_codes:
         articul = error_codes[articul]
     return articul
+
 
 def check_dates():
     year = datetime.now().year
@@ -49,7 +53,8 @@ def check_dates():
 
     return start_dates, end_dates
 
-def create_Excel_for_1C(data, start_date, end_date, error_codes):
+
+def create_Excel_for_1C(data, start_date, end_date, error_codes, k):
     returns_amount = 0
     offer_ids = []
     wb = openpyxl.Workbook()
@@ -60,57 +65,73 @@ def create_Excel_for_1C(data, start_date, end_date, error_codes):
     returns_report = openpyxl.Workbook()
     returns_report.create_sheet(title='Returns', index=0)
     sheet_returns = returns_report['Returns']
-    sheet_returns.append(['Код', 'Кол-во', 'Сумма', 'Дата продажи', 'Дата возврата'])
+    sheet_returns.append(
+        ['Код', 'Кол-во', 'Сумма', 'Дата продажи', 'Дата возврата'])
 
-    for element in data:
-        offer_id = check_articul(element['sa_name'], error_codes)
-        type = element['supplier_oper_name']
-        amount = 0.0
-        price = 0.0
-        summary = 0.0
+    if (Config.DEBUG):
+        print(start_date, end_date)
+        json_object = json.dumps(data, indent=4)
+        with open(f"Wildberries-{k}.json", "w") as outfile:
+            outfile.write(json_object)
 
-        if offer_id not in offer_ids and element['quantity'] != 0:
-            for offer_element in data:
-                offer_element_id = check_articul(offer_element['sa_name'], error_codes)
-                if offer_element_id == offer_id and offer_element['quantity'] != 0:
-                    country = offer_element['site_country']
-                    if country == 'RU' or country == '':
-                        type = offer_element['supplier_oper_name']
-                        if type == 'Продажа' or type == 'Оплата брака':
-                            amount += offer_element['quantity']
-                            summary += offer_element['retail_amount']
+    if (data):
+        for element in data:
+            offer_id = check_articul(element['sa_name'], error_codes)
+            type = element['supplier_oper_name']
+            amount = 0.0
+            price = 0.0
+            summary = 0.0
+
+            if offer_id not in offer_ids and element['quantity'] != 0:
+                print('Im here')
+                for offer_element in data:
+                    offer_element_id = check_articul(
+                        offer_element['sa_name'], error_codes)
+                    if offer_element_id == offer_id and offer_element['quantity'] != 0:
+                        country = offer_element['site_country']
+                        if country == 'RU' or country == '':
+                            type = offer_element['supplier_oper_name']
+                            if type == 'Продажа' or type == 'Оплата брака':
+                                amount += offer_element['quantity']
+                                summary += offer_element['retail_amount']
+                            else:
+                                if type != 'Возврат':
+                                    print(type, offer_element)
                         else:
-                            if type != 'Возврат':
-                                print(type, offer_element)
-                    else:
-                        if country != 'RU' and country != '' and country != 'BY':
-                            print(country, offer_element)
+                            if country != 'RU' and country != '' and country != 'BY':
+                                print(country, offer_element)
 
-            if amount != 0:
-                price = summary / amount
+                if amount != 0:
+                    price = summary / amount
 
-            amount = round(amount, 2)
-            summary = round(summary, 2)
+                amount = round(amount, 2)
+                summary = round(summary, 2)
 
-            offer_ids.append(offer_id)
-            if amount != 0:
-                if amount > 0:
-                    sheet_wb.append([offer_id, amount, price, summary])
+                offer_ids.append(offer_id)
+                if amount != 0:
+                    if amount > 0:
+                        sheet_wb.append([offer_id, amount, price, summary])
 
-        if type == 'Возврат':
-            amount = element['quantity']
-            summary = element['retail_amount']
-            sale_date = datetime.strptime(element['order_dt'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
-            return_date = datetime.strptime(element['sale_dt'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
-            sheet_returns.append([offer_id, amount, summary, sale_date, return_date])
-            returns_amount += 1
+            if type == 'Возврат':
+                amount = element['quantity']
+                summary = element['retail_amount']
+                sale_date = datetime.strptime(
+                    element['order_dt'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+                return_date = datetime.strptime(
+                    element['sale_dt'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+                sheet_returns.append(
+                    [offer_id, amount, summary, sale_date, return_date])
+                returns_amount += 1
 
-    start = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d")
+    start = datetime.strptime(
+        start_date, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d")
-    wb.save(f"Wildberries\\НП 1С Отчет комиссионера ВБ с {start} по {end}.xlsx")
+    wb.save(
+        f"Wildberries\\НП 1С Отчет комиссионера ВБ с {start} по {end}.xlsx")
     print(f'Created report')
     if returns_amount > 0:
-        returns_report.save(f"Wildberries\\НП 1С Возвраты ВБ c {start} по {end}.xlsx")
+        returns_report.save(
+            f"Wildberries\\НП 1С Возвраты ВБ c {start} по {end}.xlsx")
         print(f'> total items returned: {returns_amount}')
 
 
@@ -119,13 +140,19 @@ if __name__ == '__main__':
     os.makedirs("Wildberries", exist_ok=True)
 
     api = WildberriesAPI(api_key=Config.WB_API_KEY)
-    api_ms = MoySkladAPI(api_key=Config.MS_API_KEY)
+    api_ms = MoySkladAPI(api_key=Config.MS_API_KEY, employee_id=Config.MS_EMPLOYEE_ID, organization_id=Config.MS_ORGANIZATION_ID,
+                         contract_id=Config.MS_WB_CONTRACT_ID, counterparty_id=Config.MS_WB_COUNTERPARTY_ID)
 
     start_dates, end_dates = check_dates()
     error_codes = load_error_codes()
 
     for k in range(len(start_dates)):
+        if (Config.DEBUG):
+            print(start_dates)
+            print(end_dates)
+            print(k)
         start_date = start_dates[k]
         end_date = end_dates[k]
-        create_Excel_for_1C(api.get_report(start_date, end_date), start_date, end_date, error_codes)
+        create_Excel_for_1C(api.get_report(
+            start_date, end_date), start_date, end_date, error_codes, k)
         time.sleep(60)
