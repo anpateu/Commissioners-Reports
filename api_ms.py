@@ -1,4 +1,5 @@
 import requests
+from config import Config
 
 
 class MoySkladAPI:
@@ -9,10 +10,9 @@ class MoySkladAPI:
         self.contract_id = contract_id
         self.counterparty_id = counterparty_id
 
-
     def create_report(self, products, start_date, end_date):
-        start_date = '2022-11-01'
-        end_date = '2022-11-30'
+        start_date = Config.REPORT_START_DATE or '2023-02-01'
+        end_date = Config.REPORT_END_DATE or '2023-04-15'
 
         positions = []
         for product_id in products:
@@ -21,18 +21,18 @@ class MoySkladAPI:
             price = 0
             reward = 0
             position = {
-                    "assortment": {
-                        "meta": {
-                            "href": f"https://online.moysklad.ru/api/remap/1.2/entity/product/{product_id}",
-                            "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/product/metadata",
-                            "type": "product",
-                            "mediaType": "application/json"
-                        }
-                    },
-                    "quantity": quantity,
-                    "price": price,
-                    "vat": 0,
-                    "reward": reward
+                "assortment": {
+                    "meta": {
+                        "href": f"https://online.moysklad.ru/api/remap/1.2/entity/product/{product_id}",
+                        "metadataHref": "https://online.moysklad.ru/api/remap/1.2/entity/product/metadata",
+                        "type": "product",
+                        "mediaType": "application/json"
+                    }
+                },
+                "quantity": quantity,
+                "price": price,
+                "vat": 0,
+                "reward": reward
             }
             positions.append(position)
 
