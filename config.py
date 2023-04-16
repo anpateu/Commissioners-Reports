@@ -15,3 +15,7 @@ class Config:
     MS_WB_COUNTERPARTY_ID = os.getenv('MS_WB_COUNTERPARTY_ID')
     MS_OZON_CONTRACT_ID = os.getenv('MS_OZON_CONTRACT_ID')
     MS_OZON_COUNTERPARTY_ID = os.getenv('MS_OZON_COUNTERPARTY_ID')
+    MS_API_KEY = os.getenv('MS_API_KEY')
+    REPORT_START_DATE = os.getenv('REPORT_START_DATE')
+    REPORT_END_DATE = os.getenv('REPORT_END_DATE')
+    DEBUG = os.getenv('DEBUG')
